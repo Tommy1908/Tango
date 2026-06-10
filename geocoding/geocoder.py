@@ -25,7 +25,7 @@ class Geocoder:
         for item in count:
             coordinates = self.geocode_address(item["address"])
             result.append({
-                "hotel": item["hotel"],
+                "name": item["name"],
                 "address": item["address"],
                 "count": item["count"],
                 "coordinates": coordinates

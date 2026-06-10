@@ -34,8 +34,8 @@ class ExcelProcessor:
             & df["names_address"].notna()
         )
 
-        df["hotel"] = np.where(is_hotel, df["names_address"], np.nan)
-        df["hotel"] = df["hotel"].ffill()
+        df["name"] = np.where(is_hotel, df["names_address"], np.nan)
+        df["name"] = df["name"].ffill()
 
         df["address"] = np.where(is_address, df["names_address"], np.nan)
         df["address"] = df["address"].ffill()
@@ -43,7 +43,7 @@ class ExcelProcessor:
         df_pax = df.dropna(subset=["count"]).copy()
         df_pax["count"] = df_pax["count"].astype(int)
 
-        df_count = df_pax.groupby(["hotel", "address"])["count"].sum().reset_index()
+        df_count = df_pax.groupby(["name", "address"])["count"].sum().reset_index()
 
         self.df = df_count
         count = df_count.to_dict(orient="records")
