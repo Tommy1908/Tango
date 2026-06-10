@@ -1,11 +1,7 @@
 import pandas as pd
 import numpy as np
-from typing import TypedDict, cast
-
-class count_dict(TypedDict):
-    hotel: str
-    address: str
-    count: int
+from schemas import count_dict
+from typing import cast
 
 class ExcelProcessor:
     def __init__(self, path: str):
@@ -41,13 +37,13 @@ class ExcelProcessor:
         df["hotel"] = np.where(is_hotel, df["names_address"], np.nan)
         df["hotel"] = df["hotel"].ffill()
 
-        df["direccion"] = np.where(is_address, df["names_address"], np.nan)
-        df["direccion"] = df["direccion"].ffill()
+        df["address"] = np.where(is_address, df["names_address"], np.nan)
+        df["address"] = df["address"].ffill()
 
         df_pax = df.dropna(subset=["count"]).copy()
         df_pax["count"] = df_pax["count"].astype(int)
 
-        df_count = df_pax.groupby(["hotel", "direccion"])["count"].sum().reset_index()
+        df_count = df_pax.groupby(["hotel", "address"])["count"].sum().reset_index()
 
         self.df = df_count
         count = df_count.to_dict(orient="records")
