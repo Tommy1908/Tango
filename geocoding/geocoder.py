@@ -42,6 +42,14 @@ class Geocoder:
             if polygon.contains(coordinate_point):
                 coordinate_zones.append(zone)
         return coordinate_zones
+    
+    def classfy_count_by_zone(self, operation_dict:list[operation_dict], zones) -> list[operation_dict]:
+        for item in operation_dict:
+            if item["coordinates"]:
+                item["zone"] = self.classify_by_zone(item["coordinates"], zones)
+            else:
+                item["zone"] = []
+        return operation_dict
 
 if __name__ == "__main__": # pragma: no cover
     address = "ARENALES 1210"

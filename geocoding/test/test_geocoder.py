@@ -140,3 +140,69 @@ def test_classify_coordinate_without_zones_is_empty():
     geocoder = Geocoder()
 
     assert geocoder.classify_by_zone(coordinate, {}) == expected
+
+
+def test_classify_count_by_zone():
+    operation_dict: list[operation_dict] = [
+        {'name': 'Abasto',   'address': 'Av. Corrientes 3247',   'count': 2, 'coordinates': (-34.603871342066306, -58.41100043161615)},
+        {'name': 'Dot',      'address': 'VEDIA 3600',            'count': 1, 'coordinates': (-34.54642280697294, -58.48787894167371)},
+        {'name': 'Bullrich', 'address': 'Posadas 1245',          'count': 7, 'coordinates': (-34.58869592680653, -58.38397113659946)},
+        {'name': 'Devoto',   'address': 'Quevedo 3365',          'count': 1, 'coordinates': (-34.61173697294645, -58.51780871812393)},
+        {'name': 'Alcorta',  'address': 'Jerónimo Salguero 3172','count': 6, 'coordinates': (-34.57524046496525, -58.4040346824632)},
+        ]
+
+    expected: list[operation_dict] = [
+        {'name': 'Abasto',   'address': 'Av. Corrientes 3247',   'count': 2, 'coordinates': (-34.603871342066306, -58.41100043161615), 'zone': ['Balvanera']},
+        {'name': 'Dot',      'address': 'VEDIA 3600',            'count': 1, 'coordinates': (-34.54642280697294, -58.48787894167371), 'zone': ['Saavedra']},
+        {'name': 'Bullrich', 'address': 'Posadas 1245',          'count': 7, 'coordinates': (-34.58869592680653, -58.38397113659946), 'zone': ['Recoleta', 'Retiro']},
+        {'name': 'Devoto',   'address': 'Quevedo 3365',          'count': 1, 'coordinates': (-34.61173697294645, -58.51780871812393), 'zone': ['Devoto']},
+        {'name': 'Alcorta',  'address': 'Jerónimo Salguero 3172','count': 6, 'coordinates': (-34.57524046496525, -58.4040346824632), 'zone': ['Palermo', 'Recoleta']},
+        ]
+
+    geocoder = Geocoder()
+    result =geocoder.classfy_count_by_zone(operation_dict, zones)
+    for r, e in zip(result, expected):
+        assert r["name"] == e["name"]
+        assert r["address"] == e["address"]
+        assert r["count"] == e["count"]
+        assert r["coordinates"] == e["coordinates"]
+        assert "zone" in r
+        assert "zone" in e
+        assert sorted(r["zone"]) == sorted(e["zone"])
+
+def test_classify_count_by_zone_without_zones():
+    operation_dict: list[operation_dict] = [
+        {'name': 'Abasto',   'address': 'Av. Corrientes 3247',   'count': 2, 'coordinates': (-34.603871342066306, -58.41100043161615)},
+        {'name': 'Dot',      'address': 'VEDIA 3600',            'count': 1, 'coordinates': (-34.54642280697294, -58.48787894167371)}
+        ]
+
+    expected: list[operation_dict] = [
+        {'name': 'Abasto',   'address': 'Av. Corrientes 3247',   'count': 2, 'coordinates': (-34.603871342066306, -58.41100043161615), 'zone': []},
+        {'name': 'Dot',      'address': 'VEDIA 3600',            'count': 1, 'coordinates': (-34.54642280697294, -58.48787894167371), 'zone': []}
+    ]
+
+    geocoder = Geocoder()
+    result =geocoder.classfy_count_by_zone(operation_dict, {})
+    for r, e in zip(result, expected):
+        assert r == e
+
+
+def test_classify_count_by_zone_with_coodinate_outside_zones():
+    operation_dict: list[operation_dict] = [{'name': 'Galerias', 'address': 'Av. Rivadavia 5108', 'count': 3, 'coordinates':(-34.619015354927804, -58.43780105380936)}]
+
+    expected: list[operation_dict] = [{'name': 'Galerias', 'address': 'Av. Rivadavia 5108', 'count': 3, 'coordinates':(-34.619015354927804, -58.43780105380936), 'zone': []}]
+
+    geocoder = Geocoder()
+    result =geocoder.classfy_count_by_zone(operation_dict, zones)
+    for r, e in zip(result, expected):
+        assert r == e
+
+def test_classify_count_by_zone_without_coodinates():
+    operation_dict: list[operation_dict] = [{'name': 'Galerias' ,'address': 'Av. Córdoba 550','count': 9, 'coordinates': None}]
+
+    expected: list[operation_dict] = [{'name': 'Galerias' ,'address': 'Av. Córdoba 550','count': 9, 'coordinates': None, 'zone': []}]
+
+    geocoder = Geocoder()
+    result =geocoder.classfy_count_by_zone(operation_dict, zones)
+    for r, e in zip(result, expected):
+        assert r == e
