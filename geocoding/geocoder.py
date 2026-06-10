@@ -1,12 +1,13 @@
 from geopy.geocoders import Photon, Nominatim
 from geopy.location import Location
+from schemas import count_dict, operation_dict
 from typing import Any, cast
 
 class Geocoder:
     def __init__(self):
-        self.geolocator = Photon(timeout=5)
+        self.geolocator = Photon(timeout=5) # type: ignore
 
-    def geocode_address(self, address:str, city="Ciudad Autónoma de Buenos Aires", country="Argentina") -> tuple[float,float]:
+    def geocode_address(self, address:str, city="Ciudad Autónoma de Buenos Aires", country="Argentina") -> tuple[float,float] | None:
     
         query = f"{address}, {city}, {country}"
 
@@ -17,8 +18,19 @@ class Geocoder:
         except Exception as e:
             print(f"API error (Photon): {e}")
 
-        return (0.0, 0.0)
-
+        return None
+    
+    def geocode_count(self, count: list[count_dict]) -> list[operation_dict]:
+        result = []
+        for item in count:
+            coordinates = self.geocode_address(item["address"])
+            result.append({
+                "hotel": item["hotel"],
+                "address": item["address"],
+                "count": item["count"],
+                "coordinates": coordinates
+            })
+        return result
 
 if __name__ == "__main__": # pragma: no cover
     address = "ARENALES 1210"
