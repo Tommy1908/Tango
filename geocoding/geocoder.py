@@ -2,6 +2,8 @@ from geopy.geocoders import Photon, Nominatim
 from geopy.location import Location
 from schemas import count_dict, operation_dict
 from typing import Any, cast
+from shapely.geometry import Polygon, Point
+
 
 class Geocoder:
     def __init__(self):
@@ -31,6 +33,15 @@ class Geocoder:
                 "coordinates": coordinates
             })
         return result
+    
+    def classify_by_zone(self, coordinate, zones) -> list[str]:
+        coordinate_zones = []
+        coordinate_point = Point(coordinate)
+
+        for zone, polygon in zones.items():
+            if polygon.contains(coordinate_point):
+                coordinate_zones.append(zone)
+        return coordinate_zones
 
 if __name__ == "__main__": # pragma: no cover
     address = "ARENALES 1210"

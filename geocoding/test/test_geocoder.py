@@ -3,6 +3,7 @@ from geocoding.geocoder import Geocoder
 from excel_processing.excel_processor import count_dict
 from geocoding.geocoder import operation_dict
 from unittest.mock import patch, MagicMock
+from shapely.geometry import Polygon
 
 def test_geocoding_address():
     address = "ARENALES 1210"
@@ -63,3 +64,79 @@ def test_geocoding_from_count():
             e["coordinates"],
             abs=2.5e-4
         )
+
+
+# Based on neighborhood boundaries, but extended for test purposes
+zones = {
+        'Recoleta': Polygon([
+        (-34.59775763848938, -58.416065994430376),
+        (-34.57152236217772, -58.41185706233693),
+        (-34.5719757424975, -58.39287909348045),
+        (-34.58905990101843, -58.38076081832795),
+        (-34.59926959530766, -58.386854797200925),
+        (-34.59987012647645, -58.40432134223656)
+        ]),
+        'Palermo': Polygon([
+        (-34.59813031994899, -58.41043078579839),
+        (-34.597712354404685, -58.425719980462986),
+        (-34.57880882567445, -58.455621357497556),
+        (-34.547262409771584, -58.43124891434665),
+        (-34.55999392017572, -58.38487357100731),
+        (-34.58629497803302, -58.398432951442885)
+        ]),
+        'Devoto': Polygon([
+        (-34.610837338684554, -58.529185407271086),
+        (-34.5805920535292, -58.51478084961129),
+        (-34.59657530926845, -58.49661858125762),
+        (-34.609290971968306, -58.50016753024627),
+        (-34.62005763452868, -58.51693802069537)
+        ]),
+        'Retiro': Polygon([
+        (-34.599168933352075, -58.386786514515904),
+        (-34.59122030804602, -58.38837438224642),
+        (-34.580585624507194, -58.39172177908372),
+        (-34.5682533407025, -58.38326745628071),
+        (-34.58153962178231, -58.35030847198172),
+        (-34.598462419704575, -58.36292558314007),
+        ]),
+        'Saavedra': Polygon([
+        (-34.569899308020865, -58.50994334180774),
+        (-34.5506316955351, -58.467014705712565),
+        (-34.53842365902603, -58.47611917599681),
+        (-34.54901859327118, -58.50157993303969)
+        ]),
+        'Balvanera': Polygon([
+        (-34.62053175915938, -58.412649495647976),
+        (-34.59785525928151, -58.4119313168843),
+        (-34.599413795127475, -58.392671068221695),
+        (-34.61854378295642, -58.391561155586906)
+        ])
+    }
+
+def test_classify_coordinate_outside_any_zone_is_empty():
+    coordinate = (-34.91070979541186, -57.95530040583459)
+    expected = []
+    geocoder = Geocoder()
+
+    assert geocoder.classify_by_zone(coordinate, zones) == expected
+
+def test_classify_coordinate_by_zone():
+    coordinate = (-34.603871342066306, -58.41100043161615)
+    expected = ['Balvanera']
+    geocoder = Geocoder()
+
+    assert geocoder.classify_by_zone(coordinate, zones) == expected
+
+def test_classify_coordinate_in_multiple_zones():
+    coordinate = (-34.58869592680653, -58.38397113659946)
+    expected = ['Recoleta', 'Retiro']
+    geocoder = Geocoder()
+    
+    assert geocoder.classify_by_zone(coordinate, zones) == expected
+
+def test_classify_coordinate_without_zones_is_empty():
+    coordinate = (-34.58869592680653, -58.38397113659946)
+    expected = []
+    geocoder = Geocoder()
+
+    assert geocoder.classify_by_zone(coordinate, {}) == expected

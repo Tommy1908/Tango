@@ -2,3 +2,4 @@ numpy==2.4.6
 pandas[excel]==3.0.3
 pytest==9.0.3
 geopy==2.4.1
+Shapely==2.1.2

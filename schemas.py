@@ -12,3 +12,4 @@ class operation_dict(TypedDict):
     address: str
     count: int
     coordinates: tuple[float, float] | None
+    zone: NotRequired[list[str]]
