@@ -1,8 +1,7 @@
-from geopy.geocoders import Photon, Nominatim
-from geopy.location import Location
+from geopy.geocoders import Photon
 from schemas import count_dict, operation_dict
 from typing import Any, cast
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Point
 
 
 class Geocoder:
