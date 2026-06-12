@@ -1,6 +1,6 @@
 import pytest
 from geocoding.geocoder import Geocoder
-from excel_processing.excel_processor import count_dict
+from schemas import count_dict
 from geocoding.geocoder import operation_dict
 from unittest.mock import patch, MagicMock
 from shapely.geometry import Polygon
@@ -143,7 +143,7 @@ def test_classify_coordinate_without_zones_is_empty():
 
 
 def test_classify_count_by_zone():
-    operation_dict: list[operation_dict] = [
+    count: list[operation_dict] = [
         {'name': 'Abasto',   'address': 'Av. Corrientes 3247',   'count': 2, 'coordinates': (-34.603871342066306, -58.41100043161615)},
         {'name': 'Dot',      'address': 'VEDIA 3600',            'count': 1, 'coordinates': (-34.54642280697294, -58.48787894167371)},
         {'name': 'Bullrich', 'address': 'Posadas 1245',          'count': 7, 'coordinates': (-34.58869592680653, -58.38397113659946)},
@@ -160,7 +160,7 @@ def test_classify_count_by_zone():
         ]
 
     geocoder = Geocoder()
-    result =geocoder.classfy_count_by_zone(operation_dict, zones)
+    result =geocoder.classfy_count_by_zone(count, zones)
     for r, e in zip(result, expected):
         assert r["name"] == e["name"]
         assert r["address"] == e["address"]
@@ -171,7 +171,7 @@ def test_classify_count_by_zone():
         assert sorted(r["zone"]) == sorted(e["zone"])
 
 def test_classify_count_by_zone_without_zones():
-    operation_dict: list[operation_dict] = [
+    count: list[operation_dict] = [
         {'name': 'Abasto',   'address': 'Av. Corrientes 3247',   'count': 2, 'coordinates': (-34.603871342066306, -58.41100043161615)},
         {'name': 'Dot',      'address': 'VEDIA 3600',            'count': 1, 'coordinates': (-34.54642280697294, -58.48787894167371)}
         ]
@@ -182,27 +182,27 @@ def test_classify_count_by_zone_without_zones():
     ]
 
     geocoder = Geocoder()
-    result =geocoder.classfy_count_by_zone(operation_dict, {})
+    result =geocoder.classfy_count_by_zone(count, {})
     for r, e in zip(result, expected):
         assert r == e
 
 
 def test_classify_count_by_zone_with_coodinate_outside_zones():
-    operation_dict: list[operation_dict] = [{'name': 'Galerias', 'address': 'Av. Rivadavia 5108', 'count': 3, 'coordinates':(-34.619015354927804, -58.43780105380936)}]
+    count: list[operation_dict] = [{'name': 'Galerias', 'address': 'Av. Rivadavia 5108', 'count': 3, 'coordinates':(-34.619015354927804, -58.43780105380936)}]
 
     expected: list[operation_dict] = [{'name': 'Galerias', 'address': 'Av. Rivadavia 5108', 'count': 3, 'coordinates':(-34.619015354927804, -58.43780105380936), 'zone': []}]
 
     geocoder = Geocoder()
-    result =geocoder.classfy_count_by_zone(operation_dict, zones)
+    result =geocoder.classfy_count_by_zone(count, zones)
     for r, e in zip(result, expected):
         assert r == e
 
 def test_classify_count_by_zone_without_coodinates():
-    operation_dict: list[operation_dict] = [{'name': 'Galerias' ,'address': 'Av. Córdoba 550','count': 9, 'coordinates': None}]
+    count: list[operation_dict] = [{'name': 'Galerias' ,'address': 'Av. Córdoba 550','count': 9, 'coordinates': None}]
 
     expected: list[operation_dict] = [{'name': 'Galerias' ,'address': 'Av. Córdoba 550','count': 9, 'coordinates': None, 'zone': []}]
 
     geocoder = Geocoder()
-    result =geocoder.classfy_count_by_zone(operation_dict, zones)
+    result =geocoder.classfy_count_by_zone(count, zones)
     for r, e in zip(result, expected):
         assert r == e
