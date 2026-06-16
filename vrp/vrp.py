@@ -53,6 +53,8 @@ class VrpSolver:
             from_node = manager.IndexToNode(from_index)
             if virtual_node_id is not None and from_node == virtual_node_id:
                 return 0
+            if start_at is not None and from_node == start_at:
+                return 0
             return query[from_node]['count']
 
         demand_callback_index = routing.RegisterUnaryTransitCallback(demand_callback)
@@ -113,7 +115,8 @@ class VrpSolver:
                     route_index.append(end_node)
 
                 used_capacity = solution.Value(capacity_dimension.CumulVar(index))
-                self.solution.append((route_index,used_capacity))
+                if not (len(route_index) == 2 and route_index[0]==0 and route_index[1]==0):
+                    self.solution.append((route_index,used_capacity))
 
                 if used_capacity > 0:  
                     active_vehicles += 1
@@ -173,26 +176,27 @@ class VrpSolver:
 
         # Return base matrix if no virtual node is needed
         if start_at is not None and end_at is not None:
-            return manhattan_matrix, None
+            virtual_node_id = None
+        else:
+            # Virtual node (distance 0 to all of them)
+            extended_matrix = np.zeros((real_nodes + 1, real_nodes + 1))
+            extended_matrix[:real_nodes, :real_nodes] = manhattan_matrix
+            virtual_node_id = real_nodes
 
-        # Virtual node (distance 0 to all of them)
-        extended_matrix = np.zeros((real_nodes + 1, real_nodes + 1))
-        extended_matrix[:real_nodes, :real_nodes] = manhattan_matrix
+            if end_at is not None:
+                # Going from virtual node to any is free, other way is inf 
+                for i in range(real_nodes):
+                    extended_matrix[i, virtual_node_id] = 9999999
 
-        virtual_node_id = real_nodes
+            if start_at is not None:
+                # Going to virtual node from any is free, other way is inf 
+                for i in range(real_nodes):
+                    extended_matrix[virtual_node_id, i] = 9999999
+            manhattan_matrix = extended_matrix
 
-        if end_at is not None:
-            # Going from virtual node to any is free, other way is inf 
-            for i in range(real_nodes):
-                extended_matrix[i, virtual_node_id] = 9999999
-
-        if start_at is not None:
-            # Going to virtual node from any is free, other way is inf 
-            for i in range(real_nodes):
-                extended_matrix[virtual_node_id, i] = 9999999
 
         # Add extra costs and penalties to matrix
-        matrix_size = len(extended_matrix)
+        matrix_size = len(manhattan_matrix)
         zone_penalty = 10000
         for i in range(matrix_size):
             for j in range(matrix_size):
@@ -208,12 +212,34 @@ class VrpSolver:
 
                 # If they dont share the same zone, add penalty
                 if not (set(from_zone) & set(to_zone)):
-                    extended_matrix[i][j] += zone_penalty
+                    manhattan_matrix[i][j] += zone_penalty
 
-        return extended_matrix, virtual_node_id
+        return manhattan_matrix, virtual_node_id
 
 if __name__ == "__main__": # pragma: no cover
     solver = VrpSolver()
 
-    query= [{'name': 'P1', 'address': 'av. 123', 'count': 5, 'coordinates': (-34.502925295393105, -58.494679009326596)}]
-    solution = solver.vrp(query,vehicle_number=35,capacity=19, start_at=None, end_at=None, auto_split=True)
+    query= [{'name': 'P1', 'address': 'Av. del Libertador 3120', 'count': 0, 'coordinates': (-34.50124927145548, -58.48266215470423)},
+            {'name': 'P2', 'address': 'Av. Maipú 3565', 'count': 2, 'coordinates': (-34.502925295393105, -58.494679009326596)},
+            {'name': 'P3', 'address': 'Av. del Libertador 13381', 'count': 2, 'coordinates': (-34.487119420976, -58.485538394774196)},
+            {'name': 'P4', 'address': 'Av. del Libertador 3502', 'count': 2, 'coordinates': (-34.49745559061509, -58.48456863718224)},
+            {'name': 'P5', 'address': 'Díaz Vélez 1945', 'count': 2, 'coordinates': (-34.50234009000904, -58.501433339121704)},
+            ]
+    solution1 = solver.vrp(query,vehicle_number=4,capacity=4, start_at=0, end_at=0, auto_split=True)
+    query= [{'name': 'P1', 'address': 'Av. del Libertador 3120', 'count': 0, 'coordinates': (-34.50124927145548, -58.48266215470423), 'zone':['A','B']},
+            {'name': 'P2', 'address': 'Av. Maipú 3565', 'count': 2, 'coordinates': (-34.502925295393105, -58.494679009326596), 'zone':['A']},
+            {'name': 'P3', 'address': 'Av. del Libertador 13381', 'count': 2, 'coordinates': (-34.487119420976, -58.485538394774196), 'zone':['B']},
+            {'name': 'P4', 'address': 'Av. del Libertador 3502', 'count': 2, 'coordinates': (-34.49745559061509, -58.48456863718224), 'zone':['B']},
+            {'name': 'P5', 'address': 'Díaz Vélez 1945', 'count': 2, 'coordinates': (-34.50234009000904, -58.501433339121704), 'zone':['A']},
+            ]
+    solution2 = solver.vrp(query,vehicle_number=4,capacity=4, start_at=0, end_at=0, auto_split=True)
+    query= [{'name': 'P1', 'address': 'Av. del Libertador 3120', 'count': 0, 'coordinates': (-34.50124927145548, -58.48266215470423), 'zone':['A','B']},
+            {'name': 'P2', 'address': 'Av. Maipú 3565', 'count': 2, 'coordinates': (-34.502925295393105, -58.494679009326596), 'zone':['A']},
+            {'name': 'P3', 'address': 'Av. del Libertador 13381', 'count': 2, 'coordinates': (-34.487119420976, -58.485538394774196), 'zone':['A']},
+            {'name': 'P4', 'address': 'Av. del Libertador 3502', 'count': 2, 'coordinates': (-34.49745559061509, -58.48456863718224), 'zone':['B']},
+            {'name': 'P5', 'address': 'Díaz Vélez 1945', 'count': 2, 'coordinates': (-34.50234009000904, -58.501433339121704), 'zone':['B']},
+            ]
+    solution3 = solver.vrp(query,vehicle_number=4,capacity=4, start_at=0, end_at=0, auto_split=True)
+    print(solution1)
+    print(solution2)
+    print(solution3)
