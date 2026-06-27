@@ -8,7 +8,7 @@ class VrpSolver:
         self.query = []
         self.solution = []
 
-    def vrp(self, data, vehicle_number=35, capacity=19, auto_split=True, start_at=None, end_at=None, search_time=1):
+    def vrp(self, data, vehicle_number=35, capacity=19, auto_split=True, start_at=None, end_at=None, search_time=1, verbose=True):
         self.solution = []
         self.query = []
 
@@ -81,7 +81,6 @@ class VrpSolver:
         solution = routing.SolveWithParameters(search_parameters)
 
         if solution:
-            print("Routes optimized\n")
             capacity_dimension = routing.GetDimensionOrDie("Capacity")
             
             total_load = 0
@@ -122,27 +121,34 @@ class VrpSolver:
                     active_vehicles += 1
                     total_load += used_capacity
 
-                    print(f"   Vehicle {vehicle_id}:")
-                    print(f"   Route: {' -> '.join(route_names)}")
-                    print(f"   Load: {used_capacity}/{capacity}")
-
-                    if len(coordinates_route) >= 2:
-                        base_url = "https://www.google.com/maps/dir/"
-                        coordinates_url = [f"{lat},{lng}" for lat, lng in coordinates_route]
-                        map_link = base_url + "/".join(coordinates_url)
-                        print(f"      Map: {map_link}\n")
-                    else:
-                        print("      Only one destination, not available\n")
-
-            print("=" * 60)
-            print(f"SUMMARY:")
-            print(f"     Total demand solved: {total_load}")
-            print(f"     Total active vehicles: {active_vehicles}")
-            print("=" * 60)
+                    if verbose:
+                        self.solution_route_print(vehicle_id, route_names, used_capacity, capacity, coordinates_route)
+            if verbose:
+                self.solution_summary_print(total_load,active_vehicles)
         else:
             print("Couldn't find a valid solution")
             return None
         return self.solution
+    
+    def solution_route_print(self, vehicle_id, route_names, used_capacity, capacity, coordinates_route):
+        print(f"   Vehicle {vehicle_id}:")
+        print(f"   Route: {' -> '.join(route_names)}")
+        print(f"   Load: {used_capacity}/{capacity}")
+
+        if len(coordinates_route) >= 2:
+                        base_url = "https://www.google.com/maps/dir/"
+                        coordinates_url = [f"{lat},{lng}" for lat, lng in coordinates_route]
+                        map_link = base_url + "/".join(coordinates_url)
+                        print(f"      Map: {map_link}\n")
+        else:
+            print("      Only one destination, not available\n")
+
+    def solution_summary_print(self, total_load, active_vehicles):
+        print("=" * 60)
+        print(f"SUMMARY:")
+        print(f"     Total demand solved: {total_load}")
+        print(f"     Total active vehicles: {active_vehicles}")
+        print("=" * 60)        
 
     def split(self, data, max_vehicle_capacity):
         splitted_data = []
@@ -225,21 +231,6 @@ if __name__ == "__main__": # pragma: no cover
             {'name': 'P4', 'address': 'Av. del Libertador 3502', 'count': 2, 'coordinates': (-34.49745559061509, -58.48456863718224)},
             {'name': 'P5', 'address': 'Díaz Vélez 1945', 'count': 2, 'coordinates': (-34.50234009000904, -58.501433339121704)},
             ]
-    solution1 = solver.vrp(query,vehicle_number=4,capacity=4, start_at=0, end_at=0, auto_split=True)
-    query= [{'name': 'P1', 'address': 'Av. del Libertador 3120', 'count': 0, 'coordinates': (-34.50124927145548, -58.48266215470423), 'zone':['A','B']},
-            {'name': 'P2', 'address': 'Av. Maipú 3565', 'count': 2, 'coordinates': (-34.502925295393105, -58.494679009326596), 'zone':['A']},
-            {'name': 'P3', 'address': 'Av. del Libertador 13381', 'count': 2, 'coordinates': (-34.487119420976, -58.485538394774196), 'zone':['B']},
-            {'name': 'P4', 'address': 'Av. del Libertador 3502', 'count': 2, 'coordinates': (-34.49745559061509, -58.48456863718224), 'zone':['B']},
-            {'name': 'P5', 'address': 'Díaz Vélez 1945', 'count': 2, 'coordinates': (-34.50234009000904, -58.501433339121704), 'zone':['A']},
-            ]
-    solution2 = solver.vrp(query,vehicle_number=4,capacity=4, start_at=0, end_at=0, auto_split=True)
-    query= [{'name': 'P1', 'address': 'Av. del Libertador 3120', 'count': 0, 'coordinates': (-34.50124927145548, -58.48266215470423), 'zone':['A','B']},
-            {'name': 'P2', 'address': 'Av. Maipú 3565', 'count': 2, 'coordinates': (-34.502925295393105, -58.494679009326596), 'zone':['A']},
-            {'name': 'P3', 'address': 'Av. del Libertador 13381', 'count': 2, 'coordinates': (-34.487119420976, -58.485538394774196), 'zone':['A']},
-            {'name': 'P4', 'address': 'Av. del Libertador 3502', 'count': 2, 'coordinates': (-34.49745559061509, -58.48456863718224), 'zone':['B']},
-            {'name': 'P5', 'address': 'Díaz Vélez 1945', 'count': 2, 'coordinates': (-34.50234009000904, -58.501433339121704), 'zone':['B']},
-            ]
-    solution3 = solver.vrp(query,vehicle_number=4,capacity=4, start_at=0, end_at=0, auto_split=True)
-    print(solution1)
-    print(solution2)
-    print(solution3)
+    solution = solver.vrp(query,vehicle_number=4,capacity=4, start_at=0, end_at=0, auto_split=True, verbose=True)
+    print(solution)
+   

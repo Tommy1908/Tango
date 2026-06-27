@@ -99,3 +99,33 @@ def test_vrp_zones_affect_routing():
     assert solution_no_zones == [([0, 1, 4, 0], 4), ([0, 2, 3, 0], 4)]
     assert solution_zones_1 == [([0, 1, 4, 0], 4), ([0, 2, 3, 0], 4)]
     assert solution_zones_2 == [([0, 1, 2, 0], 4), ([0, 3, 4, 0], 4)]
+
+def test_vrp_verbose_true_prints_solution(capsys):
+    solver = VrpSolver()
+    query= [{'name': 'P1', 'address': 'Av. del Libertador 3120', 'count': 0, 'coordinates': (-34.50124927145548, -58.48266215470423)},
+            {'name': 'P2', 'address': 'Av. Maipú 3565', 'count': 2, 'coordinates': (-34.502925295393105, -58.494679009326596)},
+            {'name': 'P3', 'address': 'Av. del Libertador 13381', 'count': 2, 'coordinates': (-34.487119420976, -58.485538394774196)},
+            {'name': 'P4', 'address': 'Av. del Libertador 3502', 'count': 2, 'coordinates': (-34.49745559061509, -58.48456863718224)},
+            {'name': 'P5', 'address': 'Díaz Vélez 1945', 'count': 2, 'coordinates': (-34.50234009000904, -58.501433339121704)},
+            ]
+    solver.vrp(query,vehicle_number=4,capacity=4, start_at=0, end_at=0, auto_split=True, verbose=True)
+    captured_console = capsys.readouterr()
+
+    assert "Vehicle 1:" in captured_console.out
+    assert "Route: P1 (0 pax) -> P3 (2 pax) -> P4 (2 pax) -> P1" in captured_console.out
+    assert "Load: 4/4" in captured_console.out
+    assert "Map:" in captured_console.out
+    assert "SUMMARY" in captured_console.out
+    assert "Total demand solved: 8" in captured_console.out
+
+def test_vrp_verbose_false_prints_solution(capsys):
+    solver = VrpSolver()
+    query= [{'name': 'P1', 'address': 'Av. del Libertador 3120', 'count': 0, 'coordinates': (-34.50124927145548, -58.48266215470423)},
+            {'name': 'P2', 'address': 'Av. Maipú 3565', 'count': 2, 'coordinates': (-34.502925295393105, -58.494679009326596)},
+            {'name': 'P3', 'address': 'Av. del Libertador 13381', 'count': 2, 'coordinates': (-34.487119420976, -58.485538394774196)},
+            {'name': 'P4', 'address': 'Av. del Libertador 3502', 'count': 2, 'coordinates': (-34.49745559061509, -58.48456863718224)},
+            {'name': 'P5', 'address': 'Díaz Vélez 1945', 'count': 2, 'coordinates': (-34.50234009000904, -58.501433339121704)},
+            ]
+    solver.vrp(query,vehicle_number=4,capacity=4, start_at=0, end_at=0, auto_split=True, verbose=False)
+    captured_console = capsys.readouterr()
+    assert captured_console.out == ""
