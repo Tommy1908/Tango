@@ -1,4 +1,5 @@
 import pytest
+import json
 from geocoding.geocoder import Geocoder
 from schemas import count_dict
 from geocoding.geocoder import operation_dict
@@ -35,7 +36,6 @@ def test_geocode_api_error(mock_geocode):
 
 
 def test_geocoding_from_count():
-
     count: list[count_dict] = [
         {'name': 'AQ TAILORED SUITES - Hotel', 'address': 'MONTEVIDEO 937',  'count': 2},
         {'name': 'BA ABASTO HOTEL - Hotel',    'address': 'Jean Jaures 896', 'count': 2},
@@ -206,3 +206,53 @@ def test_classify_count_by_zone_without_coodinates():
     result =geocoder.classfy_count_by_zone(count, zones)
     for r, e in zip(result, expected):
         assert r == e
+
+def test_save_located_coords_creates_saving_file(tmp_path):
+    count: list[count_dict] = [
+        {'name': 'AQ TAILORED SUITES - Hotel', 'address': 'MONTEVIDEO 937',  'count': 2},
+        ]
+
+    dir = tmp_path / "geocoding_test_tmp"
+    dir.mkdir()
+    file_path = dir / "geocoding.json"
+
+    geocoder = Geocoder()
+    geocoder.save_located_coords([], file_path)
+
+    assert file_path.exists(), "File was not created"
+
+
+def test_save_located_coords_saves_located_coord(tmp_path):
+    count: list[count_dict] = [
+        {'name': 'BA ABASTO HOTEL - Hotel',    'address': 'Jean Jaures 896', 'count': 2},
+        {'name': 'BELIEVE - Hotel',            'address': 'CHILE 80',        'count': 10},
+        {'name': 'DOLMEN - Hotel',             'address': 'SUIPACHA 1079',   'count': 6},
+        ]
+    expected_count: list[operation_dict] = [
+        {'name': 'BA ABASTO HOTEL - Hotel',    'address': 'Jean Jaures 896', 'count': 2,   'coordinates': (-34.599892671264975, -58.40748444915101)},
+        {'name': 'BELIEVE - Hotel',            'address': 'CHILE 80',        'count': 10,  'coordinates': (-34.61575980925757, -58.36735230242128)},
+        {'name': 'DOLMEN - Hotel',             'address': 'SUIPACHA 1079',   'count': 6,  'coordinates': (-34.59560372808062, -58.379906182095084)},
+        ]
+    
+    dir = tmp_path / "geocoding_test_tmp"
+    dir.mkdir()
+    file_path = dir / "geocoding.json"
+
+    geocoder = Geocoder()
+    op_dict = geocoder.geocode_count(count)
+    geocoder.save_located_coords(op_dict, file_path)
+
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        saved_data = json.load(f)
+        
+        assert len(saved_data) == len(expected_count)
+    
+        for r, e in zip(saved_data, expected_count):
+            assert r["name"] == e["name"]
+            assert r["address"] == e["address"]
+            assert r["coordinates"] == pytest.approx(
+                e["coordinates"],
+                abs=2.5e-4
+            )
+    

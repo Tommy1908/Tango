@@ -1,3 +1,4 @@
+import json
 from geopy.geocoders import Photon
 from schemas import count_dict, operation_dict
 from typing import Any, cast
@@ -49,6 +50,17 @@ class Geocoder:
             else:
                 item["zone"] = []
         return operation_dict
+    
+    def save_located_coords(self, operation_dict:list[operation_dict], path) -> None:
+        # Not saving zones, it might change more often, and is not that expensive to compute
+        save_data = []
+        for item in operation_dict:
+            save_item = item.copy()
+            save_item.pop('count', None) 
+            save_data.append(save_item)
+
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(save_data, f, indent=4)
 
 if __name__ == "__main__": # pragma: no cover
     address = "ARENALES 1210"
