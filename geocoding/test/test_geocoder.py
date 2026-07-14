@@ -242,7 +242,6 @@ def test_save_located_coords_saves_located_coord(tmp_path):
     op_dict = geocoder.geocode_count(count)
     geocoder.save_located_coords(op_dict, file_path)
 
-
     with open(file_path, "r", encoding="utf-8") as f:
         saved_data = json.load(f)
         
@@ -256,3 +255,51 @@ def test_save_located_coords_saves_located_coord(tmp_path):
                 abs=2.5e-4
             )
     
+def test_geocode_count_uses_saved_coords_if_provided_a_path_is_provided(tmp_path):
+
+    saved_info: list[operation_dict] = [
+        {'name': 'BA ABASTO HOTEL - Hotel',    'address': 'Jean Jaures 896', 'count': 2,   'coordinates': (-1, -1)},
+        {'name': 'BELIEVE - Hotel',            'address': 'CHILE 80',        'count': 10,  'coordinates': (0, 0)},
+        {'name': 'DOLMEN - Hotel',             'address': 'SUIPACHA 1079',   'count': 6,  'coordinates': (1,1)},
+        ]
+    
+    dir = tmp_path / "geocoding_test_tmp"
+    dir.mkdir()
+    file_path = dir / "geocoding.json"
+
+    geocoder = Geocoder()
+    geocoder.save_located_coords(saved_info, file_path)
+
+    count: list[count_dict] = [
+        {'name': 'AQ TAILORED SUITES - Hotel', 'address': 'MONTEVIDEO 937',  'count': 2},
+        {'name': 'BA ABASTO HOTEL - Hotel',    'address': 'Jean Jaures 896', 'count': 2},
+        {'name': 'BELIEVE - Hotel',            'address': 'CHILE 80',        'count': 10},
+        {'name': 'BROADWAY - Hotel',           'address': 'CORRIENTES 1173', 'count': 2},
+        {'name': 'DOLMEN - Hotel',             'address': 'SUIPACHA 1079',   'count': 6},
+        {'name': 'EL CONQUISTADOR - Hotel',    'address': 'SUIPACHA 948',    'count': 2}
+        ]
+    expected_count: list[operation_dict] = [
+        {'name': 'AQ TAILORED SUITES - Hotel', 'address': 'MONTEVIDEO 937',  'count': 2,   'coordinates': (-34.59797807863827, -58.38956811921236)},
+        {'name': 'BA ABASTO HOTEL - Hotel',    'address': 'Jean Jaures 896', 'count': 2,   'coordinates': (-1, -1)},
+        {'name': 'BELIEVE - Hotel',            'address': 'CHILE 80',        'count': 10,  'coordinates': (0, 0)},
+        {'name': 'BROADWAY - Hotel',           'address': 'CORRIENTES 1173', 'count': 2,  'coordinates': (-34.60367008315645, -58.38332589438214)},
+        {'name': 'DOLMEN - Hotel',             'address': 'SUIPACHA 1079',   'count': 6,  'coordinates': (1,1)},
+        {'name': 'EL CONQUISTADOR - Hotel',    'address': 'SUIPACHA 948',    'count': 2,  'coordinates': (-34.59706125395073, -58.37998639023662)},
+        ]
+    
+    geocoder = Geocoder()
+    op_dict = geocoder.geocode_count(count, file_path)
+    geocoder.save_located_coords(op_dict, file_path)
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        saved_data = json.load(f)
+        
+        assert len(saved_data) == len(expected_count)
+    
+        for r, e in zip(saved_data, expected_count):
+            assert r["name"] == e["name"]
+            assert r["address"] == e["address"]
+            assert r["coordinates"] == pytest.approx(
+                e["coordinates"],
+                abs=2.5e-4
+            )

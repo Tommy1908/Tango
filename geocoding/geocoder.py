@@ -1,4 +1,5 @@
 import json
+import os
 from geopy.geocoders import Photon
 from schemas import count_dict, operation_dict
 from typing import Any, cast
@@ -22,10 +23,20 @@ class Geocoder:
 
         return None
     
-    def geocode_count(self, count: list[count_dict]) -> list[operation_dict]:
+    def geocode_count(self, count: list[count_dict], saved_path = "") -> list[operation_dict]:
         result = []
+        saved = {}
+        if saved_path != "" and os.path.exists(saved_path):
+            with open(saved_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                saved = {item["name"]: item["coordinates"] for item in data}
+
         for item in count:
-            coordinates = self.geocode_address(item["address"])
+            if item["name"] in saved:
+                coordinates = saved[item["name"]]
+            else:
+                coordinates = self.geocode_address(item["address"])
+
             result.append({
                 "name": item["name"],
                 "address": item["address"],
