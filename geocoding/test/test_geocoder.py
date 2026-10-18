@@ -10,12 +10,12 @@ def test_geocoding_address():
     geocoder = Geocoder()
 
     #assert geocoder.geocode_address(address) == expected
-    assert geocoder.geocode_address(address) == pytest.approx(expected, abs=2.5e-4)
+    assert geocoder.geocode_address(address)[0] == pytest.approx(expected, abs=2.5e-4)
 
     address = "MONTEVIDEO 937"
     expected = (-34.59797807863827, -58.38956811921236)
     #assert geocoder.geocode_address(address) == expected
-    assert geocoder.geocode_address(address) == pytest.approx(expected, abs=2.5e-4)
+    assert geocoder.geocode_address(address)[0] == pytest.approx(expected, abs=2.5e-4)
 
 
 @patch("geocoding.geocoder.Photon.geocode")
@@ -206,3 +206,4 @@ def test_classify_count_by_zone_without_coodinates():
         assert r == e
 
 
+## TODO: Test the errors on api and null coordinates, also the chain of geocoders
