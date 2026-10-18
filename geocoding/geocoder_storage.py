@@ -49,14 +49,17 @@ class Geocoder_storage:
         for item in manual_data:
             data_dict[item['name']] = item
 
-        return {item['name']: tuple(item['coordinates']) for item in data_dict.values()}
+        return {
+            item['name']: tuple(item['coordinates'])
+            for item in data_dict.values()
+            if item.get('coordinates') is not None
+        }
 
     def save(self, result: list[operation_dict]) -> None:
         self._save_coords(result, self.auto_path)
 
     def geocode_and_save(self, count: list[count_dict], geocoder) -> list[operation_dict]:
         saved = self.get_saved_coords()
-        print(saved)
         result = geocoder.geocode_count(count, saved)
         self.save(result)
         return result
