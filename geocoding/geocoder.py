@@ -11,10 +11,23 @@ class Geocoder:
         self.geolocator_Photon = Photon(timeout=5,  user_agent="geocoding_for_arg") # type: ignore
         self.usig_address = "https://servicios.usig.buenosaires.gob.ar/normalizar/"
 
-    def geocode_address(self, address: str) -> tuple[float, float] | None:
-        return self.geocode_usig(address) or self.geocode_Photon(address) or self.geocode_Nominatim(address)
+    def geocode_address(self, address: str) -> tuple[tuple[float, float],str] | tuple[None,None]:
+        # Base on priority
+        geocoders = [
+            (self.geocode_usig, 'USIG'),
+            (self.geocode_Photon, 'Photon'),
+            (self.geocode_Nominatim, 'Nominatim')
+        ]
+        
+        for geocode_func, source_name in geocoders:
+            coords = geocode_func(address)
+            if coords:
+                return coords, source_name
+                
+        return None, None
 
     def geocode_usig(self, address: str) -> tuple[float, float] | None:
+        print(f"Usig searching for: {address}")
         try:
             response = requests.get(
                 self.usig_address,
@@ -25,31 +38,31 @@ class Geocoder:
             first_match = response.json()["direccionesNormalizadas"][0]
             lon, lat = first_match["coordenadas"]["x"], first_match["coordenadas"]["y"]
 
-            return (round(float(lat), 7), round(float(lon), 7)), 'USIG'
+            return (round(float(lat), 7), round(float(lon), 7))
         except Exception as e:
             print(f"API error (USIG): {e}")
             return None
 
     def geocode_Photon(self, address:str, city="Ciudad Autónoma de Buenos Aires", country="Argentina") -> tuple[float,float] | None:
         query = f"{address}, {city}, {country}"
-        print(f"Searching for: {address}")
+        print(f"Photon searching for: {address}")
         try:
             location = cast(Any, self.geolocator_Photon.geocode(query))
             if location:
                 print(location)
-                return (round(location.latitude, 7), round(location.longitude, 7)), 'Photon'
+                return (round(location.latitude, 7), round(location.longitude, 7))
         except Exception as e:
             print(f"API error (Photon): {e}")
         return None
 
     def geocode_Nominatim(self, address:str, city="Ciudad Autónoma de Buenos Aires", country="Argentina") -> tuple[float,float] | None:
         query = f"{address}, {city}, {country}"
-        print(f"Searching for: {address}")
+        print(f"Nominatim searching for: {address}")
         try:
             location = cast(Any, self.geolocator_Nominatim.geocode(query))
             if location:
                 print(location)
-                return (round(location.latitude, 7), round(location.longitude, 7)), 'Nominatim'
+                return (round(location.latitude, 7), round(location.longitude, 7))
         except Exception as e:
             print(f"API error (Nominatim): {e}")
         return None
@@ -61,6 +74,8 @@ class Geocoder:
         for destination in count:
             if destination["name"] in saved:
                 coordinates = saved[destination["name"]]
+                source = "SAVED"
+                print(f"Restored {destination["name"]}")
             else:
                 time.sleep(1) # Avoid api rate limit
                 coordinates, source = self.geocode_address(destination["address"])
