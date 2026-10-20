@@ -5,32 +5,46 @@ from unittest.mock import patch
 from shapely.geometry import Polygon
 
 def test_geocoding_address():
-    address = "ARENALES 1210"
-    expected = (-34.59452737273685, -58.38457436448243)
     geocoder = Geocoder()
+    expected = (-34.5945274, -58.3845744)
+    with(
+        patch.object(geocoder, 'geocode_usig', return_value=expected) as mock_usig,
+        patch.object(geocoder, 'geocode_Photon') as mock_photon,
+        patch.object(geocoder, 'geocode_Nominatim') as mock_nominatim
+        ):
+        assert geocoder.geocode_address("ARENALES 1210") == (expected, 'USIG')
 
-    #assert geocoder.geocode_address(address) == expected
-    assert geocoder.geocode_address(address)[0] == pytest.approx(expected, abs=2.5e-4)
+    mock_usig.assert_called_once_with("ARENALES 1210")
+    mock_photon.assert_not_called()
+    mock_nominatim.assert_not_called()
 
+
+def test_geocode_address_not_found():
+    geocoder = Geocoder()
+    with(
+        patch.object(geocoder, 'geocode_usig', return_value=None),
+        patch.object(geocoder, 'geocode_Photon', return_value=None),
+        patch.object(geocoder, 'geocode_Nominatim', return_value=None)
+         ):
+        assert geocoder.geocode_address("FAKE ADDR") == (None, None)
+
+def test_geocode_api_error_handles_with_other_provider():
+    geocoder = Geocoder()
     address = "MONTEVIDEO 937"
-    expected = (-34.59797807863827, -58.38956811921236)
-    #assert geocoder.geocode_address(address) == expected
-    assert geocoder.geocode_address(address)[0] == pytest.approx(expected, abs=2.5e-4)
+    expected = (-34.5979781, -58.3895681)
 
+    with (
+        patch.object(geocoder, 'geocode_usig', return_value=None) as mock_usig,
+        patch.object(geocoder, 'geocode_Photon', side_effect=Exception("Timeout total")) as mock_photon,
+        patch.object(geocoder, 'geocode_Nominatim', return_value=expected) as mock_nominatim,
+    ):
+        result = geocoder.geocode_address(address)
 
-@patch("geocoding.geocoder.Photon.geocode")
-def test_geocode_address_not_found(mock_geocode):
-    mock_geocode.return_value = None
+    assert result == (expected, 'Nominatim')
 
-    geocoder = Geocoder()
-    assert geocoder.geocode_address("FAKE ADDR") is None
-
-@patch("geocoding.geocoder.Photon.geocode")
-def test_geocode_api_error(mock_geocode):
-    mock_geocode.side_effect = Exception("Timeout total")
-
-    geocoder = Geocoder()
-    assert geocoder.geocode_address("MONTEVIDEO 937") is None
+    mock_usig.assert_called_once_with(address)
+    mock_photon.assert_called_once_with(address)
+    mock_nominatim.assert_called_once_with(address)
 
 
 def test_geocoding_from_count():
@@ -52,7 +66,14 @@ def test_geocoding_from_count():
         ]
 
     geocoder = Geocoder()
-    result =geocoder.geocode_count(count)
+    with(
+        patch.object(geocoder, 'geocode_address', side_effect=[
+        (item['coordinates'], 'prov') for item in expected_count]),
+        patch('geocoding.geocoder.time.sleep')
+        ):
+        result, all_coordinates_found = geocoder.geocode_count(count)
+
+    assert all_coordinates_found
 
     for r, e in zip(result, expected_count):
         assert r["name"] == e["name"]
@@ -62,7 +83,6 @@ def test_geocoding_from_count():
             e["coordinates"],
             abs=2.5e-4
         )
-
 
 # Based on neighborhood boundaries, but extended for test purposes
 zones = {

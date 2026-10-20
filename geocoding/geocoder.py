@@ -20,13 +20,17 @@ class Geocoder:
         ]
         
         for geocode_func, source_name in geocoders:
-            coords = geocode_func(address)
+            try:
+                coords = geocode_func(address)
+            except Exception as e:
+                print(f"API error ({source_name}): {e}")
+                continue
             if coords:
                 return coords, source_name
                 
         return None, None
 
-    def geocode_usig(self, address: str) -> tuple[float, float] | None:
+    def geocode_usig(self, address: str) -> tuple[float, float] | None: # pragma: no cover
         print(f"Usig searching for: {address}")
         try:
             response = requests.get(
@@ -43,7 +47,7 @@ class Geocoder:
             print(f"API error (USIG): {e}")
             return None
 
-    def geocode_Photon(self, address:str, city="Ciudad Autónoma de Buenos Aires", country="Argentina") -> tuple[float,float] | None:
+    def geocode_Photon(self, address:str, city="Ciudad Autónoma de Buenos Aires", country="Argentina") -> tuple[float,float] | None: # pragma: no cover
         query = f"{address}, {city}, {country}"
         print(f"Photon searching for: {address}")
         try:
@@ -55,7 +59,7 @@ class Geocoder:
             print(f"API error (Photon): {e}")
         return None
 
-    def geocode_Nominatim(self, address:str, city="Ciudad Autónoma de Buenos Aires", country="Argentina") -> tuple[float,float] | None:
+    def geocode_Nominatim(self, address:str, city="Ciudad Autónoma de Buenos Aires", country="Argentina") -> tuple[float,float] | None: # pragma: no cover
         query = f"{address}, {city}, {country}"
         print(f"Nominatim searching for: {address}")
         try:
@@ -68,7 +72,7 @@ class Geocoder:
         return None
 
     
-    def geocode_count(self, count: list[count_dict], saved={}) -> list[operation_dict]:
+    def geocode_count(self, count: list[count_dict], saved={}) -> tuple[list[operation_dict],bool]:
         result = []
         has_null_coordiantes_names = []
         for destination in count:
@@ -90,9 +94,9 @@ class Geocoder:
             })
 
         if has_null_coordiantes_names:
-            print(f"Algunas direcciones dieron NULL y deben arreglarse manualmente: {has_null_coordiantes_names}")
+            print(f"Some addresses are NULL and should be fixed manually: {has_null_coordiantes_names}")
 
-        return result
+        return result, not has_null_coordiantes_names
     
     def classify_by_zone(self, coordinate, zones) -> list[str]:
         coordinate_zones = []

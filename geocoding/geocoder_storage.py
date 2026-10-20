@@ -60,6 +60,8 @@ class Geocoder_storage:
 
     def geocode_and_save(self, count: list[count_dict], geocoder) -> list[operation_dict]:
         saved = self.get_saved_coords()
-        result = geocoder.geocode_count(count, saved)
+        result, all_coordinates_found = geocoder.geocode_count(count, saved)
         self.save(result)
+        if not all_coordinates_found:
+            raise ValueError("Some addresses could not be geocoded correct them and try again")
         return result

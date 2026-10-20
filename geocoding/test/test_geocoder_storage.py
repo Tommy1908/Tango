@@ -1,7 +1,7 @@
 from geocoding.geocoder_storage import Geocoder_storage
 from geocoding.geocoder import Geocoder
 from schemas import count_dict, operation_dict
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from shapely.geometry import Polygon
 import json
 import pytest
@@ -164,10 +164,7 @@ def test_save_does_not_overwrite_existing_names(tmp_path):
     assert tuple(saved[0]['coordinates']) == (1, 1)
 
 
-@patch("geocoding.geocoder.Photon.geocode")
-def test_geocode_and_save_full_pipeline(mock_geocode, tmp_path):
-    mock_geocode.return_value = Mock(latitude=-34.60, longitude=-58.38)
-
+def test_geocode_and_save_full_pipeline(tmp_path):
     count: list[count_dict] = [
         {'name': 'Hotel A', 'address': 'Calle 1', 'count': 3},
         {'name': 'Hotel B', 'address': 'Calle 2', 'count': 5},
@@ -176,8 +173,13 @@ def test_geocode_and_save_full_pipeline(mock_geocode, tmp_path):
     storage = Geocoder_storage(automatic_path=file_path)
     geocoder = Geocoder()
 
-    result = storage.geocode_and_save(count, geocoder)
+    with(
+        patch.object(geocoder, 'geocode_address', return_value=((-34.60, -58.38), 'USIG')) as mock_geocode,
+        patch('geocoding.geocoder.time.sleep')
+        ):
+        result = storage.geocode_and_save(count, geocoder)
 
+    assert mock_geocode.call_count == 2
     assert len(result) == 2
     assert result[0]['name'] == 'Hotel A'
     assert result[0]['coordinates'] is not None
@@ -188,10 +190,7 @@ def test_geocode_and_save_full_pipeline(mock_geocode, tmp_path):
     assert len(saved) == 2
 
 
-@patch("geocoding.geocoder.Photon.geocode")
-def test_geocode_and_save_with_manual_overrides(mock_geocode, tmp_path):
-    mock_geocode.return_value = Mock(latitude=-34.60, longitude=-58.38)
-
+def test_geocode_and_save_with_manual_overrides(tmp_path):
     manual_info = [
         {'name': 'Hotel A', 'address': 'Calle 1', 'coordinates': (99, 99)},
     ]
@@ -207,8 +206,53 @@ def test_geocode_and_save_with_manual_overrides(mock_geocode, tmp_path):
         {'name': 'Hotel B', 'address': 'Calle 2', 'count': 5},
     ]
     geocoder = Geocoder()
-    result = storage.geocode_and_save(count, geocoder)
+    with patch.object(geocoder, 'geocode_address', return_value=((-34.60, -58.38), 'USIG')) as mock_geocode, \
+         patch('geocoding.geocoder.time.sleep'):
+        result = storage.geocode_and_save(count, geocoder)
 
     hotel_A = next(r for r in result if r['name'] == 'Hotel A')
     assert hotel_A['coordinates'] == (99, 99)
-    mock_geocode.assert_called_once()
+    mock_geocode.assert_called_once_with('Calle 2')
+
+
+def test_geocode_and_save_with_a_null_coordinate_raises_exception(tmp_path):
+    count: list[count_dict] = [
+        {'name': 'Hotel A', 'address': 'Calle 1', 'count': 3},
+        {'name': 'Hotel B', 'address': 'Calle 2', 'count': 5},
+    ]
+    file_path = tmp_path / "auto.json"
+    storage = Geocoder_storage(automatic_path=file_path)
+    geocoder = Geocoder()
+
+    with(
+        patch.object(geocoder, 'geocode_address', side_effect=[
+            ((-34.60, -58.38), 'USIG'), (None, None)
+        ]) as mock_geocode,
+        patch('geocoding.geocoder.time.sleep')
+        ):
+        with(
+            pytest.raises(ValueError, match="could not be geocoded")
+            ):
+            storage.geocode_and_save(count, geocoder)
+
+    assert [call.args for call in mock_geocode.call_args_list] == [
+        ('Calle 1',), ('Calle 2',)
+    ]
+    with open(file_path, "r", encoding="utf-8") as f:
+        saved = json.load(f)
+    assert [(item['name'], item['coordinates']) for item in saved] == [
+        ('Hotel A', [-34.60, -58.38]),
+        ('Hotel B', None),
+    ]
+
+    storage.manual_path = tmp_path / "manual.json"
+    storage._save_coords([{
+        'name': 'Hotel B', 'address': 'Calle 2', 'coordinates': (-34.61, -58.39)
+    }], storage.manual_path)
+    with patch.object(geocoder, 'geocode_address') as mock_geocode:
+        result = storage.geocode_and_save(count, geocoder)
+
+    mock_geocode.assert_not_called()
+    assert [item['coordinates'] for item in result] == [
+        (-34.60, -58.38), (-34.61, -58.39)
+    ]
